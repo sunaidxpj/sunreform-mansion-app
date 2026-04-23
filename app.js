@@ -146,6 +146,21 @@ function escHtml(s) {
   }[c]));
 }
 
+function formatDate(s) {
+  if (!s) return "";
+  // "2026-04-23 06:01:52.192000+00:00" / "2021/9/4" / ISO 等を年月日に整形
+  const str = String(s).trim();
+  const m = str.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if (!m) return str;
+  const [, y, mo, d] = m;
+  return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+function formatAddress(m) {
+  const parts = [m.address1, m.address2].filter(Boolean).join("");
+  return parts || m.city || "";
+}
+
 function renderLogin() {
   app.innerHTML = `
     <div class="login-screen">
@@ -194,7 +209,7 @@ function renderList() {
   const cards = STATE.filtered.map(m => `
     <div class="card" onclick='showDetail(${JSON.stringify(m.key)})'>
       <div class="name">${escHtml(m.name)}</div>
-      <div class="city">${escHtml(m.city || "（市未登録）")}</div>
+      <div class="city">${escHtml(formatAddress(m) || "（住所未登録）")}</div>
     </div>
   `).join("");
   return `
@@ -217,10 +232,10 @@ function renderDetail() {
     ? sites.map(s => `
         <tr>
           <td>${escHtml(s.id)}</td>
-          <td>${escHtml(s.address || s.address_line || "")}</td>
-          <td>${escHtml(s.construction_status || s.status || "")}</td>
+          <td>${escHtml([s.contruction_add1, s.contruction_add2].filter(Boolean).join("") || s.city || "")}</td>
+          <td>${escHtml(s.construction_status || "")}</td>
           <td>${escHtml(s.main_staff || "")}</td>
-          <td>${escHtml(s.complete_date || s.synced_at || "")}</td>
+          <td>${escHtml(formatDate(s.reception_date || s.contract_date || s.synced_at))}</td>
         </tr>
       `).join("")
     : `<tr><td colspan="5" style="text-align:center;color:#6e6e73;padding:24px">紐付く工事履歴がありません</td></tr>`;
@@ -228,7 +243,7 @@ function renderDetail() {
     <button class="back" onclick="goBack()">← 一覧に戻る</button>
     <div class="detail">
       <h2>${escHtml(m.name)}</h2>
-      <div class="sub">${escHtml(m.city || "")}　/　現場履歴 ${sites.length}件</div>
+      <div class="sub">${escHtml(formatAddress(m))}　/　現場履歴 ${sites.length}件</div>
       <div class="section">
         <h3>申し送り事項</h3>
         <div class="申し送り${申し送り ? "" : " empty"}">${申し送り ? escHtml(申し送り) : "（未登録）"}</div>
