@@ -161,6 +161,19 @@ function formatAddress(m) {
   return parts || m.city || "";
 }
 
+function formatYen(v) {
+  if (v === null || v === undefined || v === "") return "";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return String(v);
+  return `¥${n.toLocaleString()}`;
+}
+
+function profitRate(contract, profit) {
+  const c = Number(contract), p = Number(profit);
+  if (!Number.isFinite(c) || c === 0 || !Number.isFinite(p)) return "";
+  return `${(p / c * 100).toFixed(1)}%`;
+}
+
 function renderLogin() {
   app.innerHTML = `
     <div class="login-screen">
@@ -235,23 +248,34 @@ function renderDetail() {
           <td>${escHtml([s.contruction_add1, s.contruction_add2].filter(Boolean).join("") || s.city || "")}</td>
           <td>${escHtml(s.construction_status || "")}</td>
           <td>${escHtml(s.main_staff || "")}</td>
+          <td style="text-align:right">${escHtml(formatYen(s.contract_amount))}</td>
+          <td style="text-align:right">${escHtml(profitRate(s.contract_amount, s.profit_amount))}</td>
           <td>${escHtml(formatDate(s.reception_date || s.contract_date || s.synced_at))}</td>
         </tr>
       `).join("")
-    : `<tr><td colspan="5" style="text-align:center;color:#6e6e73;padding:24px">紐付く工事履歴がありません</td></tr>`;
+    : `<tr><td colspan="7" style="text-align:center;color:#6e6e73;padding:24px">紐付く工事履歴がありません</td></tr>`;
   return `
     <button class="back" onclick="goBack()">← 一覧に戻る</button>
     <div class="detail">
       <h2>${escHtml(m.name)}</h2>
       <div class="sub">${escHtml(formatAddress(m))}　/　現場履歴 ${sites.length}件</div>
       <div class="section">
-        <h3>申し送り事項</h3>
-        <div class="申し送り${申し送り ? "" : " empty"}">${申し送り ? escHtml(申し送り) : "（未登録）"}</div>
+        <h3>申し送り事項 <button class="edit-memo" onclick="startEditMemo()">編集</button></h3>
+        <div id="memo-display" class="申し送り${申し送り ? "" : " empty"}">${申し送り ? escHtml(申し送り) : "（未登録）"}</div>
+        <div id="memo-editor" style="display:none">
+          <textarea id="memo-textarea" rows="6" style="width:100%;padding:12px;font-family:inherit;font-size:14px;border:1px solid #d2d2d7;border-radius:8px;resize:vertical">${escHtml(申し送り)}</textarea>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button onclick="saveMemo()" id="memo-save-btn" style="background:#0066cc;color:#fff;border:0;padding:8px 16px;border-radius:6px;cursor:pointer">保存</button>
+            <button onclick="cancelEditMemo()" style="background:#f5f5f7;color:#1d1d1f;border:1px solid #d2d2d7;padding:8px 16px;border-radius:6px;cursor:pointer">キャンセル</button>
+            <span id="memo-status" style="color:#6e6e73;font-size:13px;align-self:center"></span>
+          </div>
+        </div>
+        ${m.memo_updated_at ? `<div style="color:#6e6e73;font-size:12px;margin-top:6px">最終更新: ${formatDate(m.memo_updated_at)} by ${escHtml(m.memo_updated_by || "")}</div>` : ""}
       </div>
       <div class="section sites">
         <h3>関連する現場</h3>
         <table>
-          <thead><tr><th>現場ID</th><th>住所</th><th>工事状況</th><th>担当</th><th>日付</th></tr></thead>
+          <thead><tr><th>現場ID</th><th>住所</th><th>工事状況</th><th>担当</th><th style="text-align:right">工事金額</th><th style="text-align:right">利益率</th><th>日付</th></tr></thead>
           <tbody>${sitesRows}</tbody>
         </table>
       </div>
@@ -290,10 +314,55 @@ function render() {
   }
 }
 
+function startEditMemo() {
+  document.getElementById("memo-display").style.display = "none";
+  document.getElementById("memo-editor").style.display = "block";
+  document.getElementById("memo-textarea").focus();
+}
+
+function cancelEditMemo() {
+  document.getElementById("memo-display").style.display = "";
+  document.getElementById("memo-editor").style.display = "none";
+  document.getElementById("memo-status").textContent = "";
+}
+
+async function saveMemo() {
+  const memo = document.getElementById("memo-textarea").value;
+  const btn = document.getElementById("memo-save-btn");
+  const status = document.getElementById("memo-status");
+  btn.disabled = true;
+  status.textContent = "保存中…";
+  try {
+    const url = new URL(CONFIG.API_BASE);
+    url.searchParams.set("action", "mansion-update-memo");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STATE.idToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ key: STATE.selected, memo }),
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`保存失敗: ${res.status} ${t}`);
+    }
+    // ローカル STATE 更新して再描画
+    STATE.detail.mansion["申し送り"] = memo;
+    render();
+  } catch (e) {
+    status.textContent = e.message;
+    btn.disabled = false;
+  }
+}
+
 window.startLogin = startLogin;
 window.logout = logout;
 window.showDetail = showDetail;
 window.goBack = goBack;
+window.startEditMemo = startEditMemo;
+window.cancelEditMemo = cancelEditMemo;
+window.saveMemo = saveMemo;
 
 // ===== 初期化 =====
 
