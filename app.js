@@ -23,7 +23,7 @@ const msalConfig = {
 const loginRequest = { scopes: ["openid", "profile", "email"] };
 const tokenRequest = { scopes: [`${CONFIG.AZURE_CLIENT_ID}/.default`] };
 
-const msalClient = new window.msal.PublicClientApplication(msalConfig);
+let msalClient = null;  // bootstrap() で初期化
 
 const STATE = {
   account: null,
@@ -282,7 +282,17 @@ window.goBack = goBack;
 
 // ===== 初期化 =====
 
-(async function init() {
+(async function bootstrap() {
+  if (!window.msal || !window.msal.PublicClientApplication) {
+    document.getElementById("app").innerHTML =
+      '<div style="padding:2em;font-family:sans-serif;color:#c00">' +
+      'Microsoft認証ライブラリ (MSAL) の読み込みに失敗しました。' +
+      'ネットワーク環境を確認してから再読み込みしてください。</div>';
+    return;
+  }
+  msalClient = new window.msal.PublicClientApplication(msalConfig);
+  await msalClient.initialize();
+
   // Redirect コールバック処理
   try {
     const res = await msalClient.handleRedirectPromise();
