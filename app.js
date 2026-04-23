@@ -174,6 +174,16 @@ function profitRate(contract, profit) {
   return `${(p / c * 100).toFixed(1)}%`;
 }
 
+function statusChip(status) {
+  if (!status) return "";
+  const s = String(status);
+  let tone = "neutral";
+  if (s.includes("完工") || s.includes("入金")) tone = "success";
+  else if (s.includes("進行") || s.includes("着工") || s.includes("契約")) tone = "active";
+  else if (s.includes("断") || s.includes("失注") || s.includes("中止")) tone = "muted";
+  return `<span class="status-chip status-${tone}">${escHtml(s)}</span>`;
+}
+
 function renderLogin() {
   app.innerHTML = `
     <div class="login-screen">
@@ -221,7 +231,10 @@ function renderList() {
   }
   const cards = STATE.filtered.map(m => `
     <div class="card" onclick='showDetail(${JSON.stringify(m.key)})'>
-      <div class="name">${escHtml(m.name)}</div>
+      <div class="name">
+        ${escHtml(m.name)}
+        ${m.site_count > 1 ? `<span class="count-badge">${m.site_count}現場</span>` : ""}
+      </div>
       <div class="city">${escHtml(formatAddress(m) || "（住所未登録）")}</div>
     </div>
   `).join("");
@@ -239,14 +252,18 @@ function renderDetail() {
     `;
   }
   const m = STATE.detail.mansion || {};
-  const sites = STATE.detail.sites || [];
+  const sites = (STATE.detail.sites || []).slice().sort((a, b) => {
+    const da = a.reception_date || a.contract_date || "";
+    const db_ = b.reception_date || b.contract_date || "";
+    return db_.localeCompare(da);  // 降順
+  });
   const 申し送り = (m["申し送り"] || "").trim();
   const sitesRows = sites.length
     ? sites.map(s => `
         <tr>
           <td>${escHtml(s.id)}</td>
           <td>${escHtml([s.contruction_add1, s.contruction_add2].filter(Boolean).join("") || s.city || "")}</td>
-          <td>${escHtml(s.construction_status || "")}</td>
+          <td>${statusChip(s.construction_status)}</td>
           <td>${escHtml(s.main_staff || "")}</td>
           <td style="text-align:right">${escHtml(formatYen(s.contract_amount))}</td>
           <td style="text-align:right">${escHtml(profitRate(s.contract_amount, s.profit_amount))}</td>
