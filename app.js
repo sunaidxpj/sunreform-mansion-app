@@ -1,15 +1,33 @@
 // サンリフォーム マンション検索 SPA
-// GitHub OAuth でログイン → Cloud Run API でマンション一覧＋詳細を取得
+// Microsoft Entra ID (MSAL.js) でログイン → Cloud Run API でデータ取得
 
 const CONFIG = {
-  GITHUB_CLIENT_ID: "Ov23liBbSJD8bpsaslLX",
+  AZURE_TENANT_ID: "45878bb2-84d5-46e8-b4c2-d50f6b61e4a9",
+  AZURE_CLIENT_ID: "eef6d57e-fbbd-4d81-a5bd-26299819a205",
+  REDIRECT_URI: "https://sunaidxpj.github.io/sunreform-mansion-app/",
   API_BASE: "https://sunbo-v2-504595374043.asia-northeast1.run.app",
-  CALLBACK_URL: "https://sunbo-v2-504595374043.asia-northeast1.run.app/?action=auth-github-callback",
 };
 
+const msalConfig = {
+  auth: {
+    clientId: CONFIG.AZURE_CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${CONFIG.AZURE_TENANT_ID}`,
+    redirectUri: CONFIG.REDIRECT_URI,
+  },
+  cache: {
+    cacheLocation: "localStorage",
+    storeAuthStateInCookie: false,
+  },
+};
+
+const loginRequest = { scopes: ["openid", "profile", "email"] };
+const tokenRequest = { scopes: [`${CONFIG.AZURE_CLIENT_ID}/.default`] };
+
+const msalClient = new window.msal.PublicClientApplication(msalConfig);
+
 const STATE = {
-  token: null,
-  user: null,
+  account: null,
+  idToken: null,
   mansions: [],
   filtered: [],
   selected: null,
@@ -19,50 +37,30 @@ const STATE = {
 
 // ===== 認証 =====
 
-function getStoredToken() {
-  return localStorage.getItem("mansion_app_token");
-}
-
-function storeToken(token) {
-  localStorage.setItem("mansion_app_token", token);
-}
-
-function clearToken() {
-  localStorage.removeItem("mansion_app_token");
-}
-
-function parseJwt(token) {
+async function ensureToken() {
+  const account = msalClient.getAllAccounts()[0];
+  if (!account) return null;
   try {
-    const payload = token.split(".")[1];
-    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-    return JSON.parse(decodeURIComponent(escape(json)));
+    const res = await msalClient.acquireTokenSilent({
+      ...loginRequest,
+      account,
+    });
+    STATE.idToken = res.idToken;
+    STATE.account = account;
+    return res.idToken;
   } catch (e) {
+    console.warn("Silent token failed, redirecting:", e);
+    await msalClient.loginRedirect(loginRequest);
     return null;
   }
 }
 
-function isTokenValid(token) {
-  const p = parseJwt(token);
-  return p && p.exp && p.exp > Math.floor(Date.now() / 1000);
-}
-
-function startLogin() {
-  const state = Math.random().toString(36).slice(2);
-  sessionStorage.setItem("oauth_state", state);
-  const params = new URLSearchParams({
-    client_id: CONFIG.GITHUB_CLIENT_ID,
-    redirect_uri: CONFIG.CALLBACK_URL,
-    scope: "read:org",
-    state,
-  });
-  location.href = `https://github.com/login/oauth/authorize?${params}`;
+async function startLogin() {
+  await msalClient.loginRedirect(loginRequest);
 }
 
 function logout() {
-  clearToken();
-  STATE.token = null;
-  STATE.user = null;
-  render();
+  msalClient.logoutRedirect({ postLogoutRedirectUri: CONFIG.REDIRECT_URI });
 }
 
 // ===== API =====
@@ -71,12 +69,13 @@ async function api(action, params = {}) {
   const url = new URL(CONFIG.API_BASE);
   url.searchParams.set("action", action);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${STATE.token}` },
+    headers: { Authorization: `Bearer ${STATE.idToken}` },
   });
   if (res.status === 401) {
-    logout();
+    STATE.idToken = null;
+    STATE.account = null;
+    render();
     throw new Error("認証が切れました。再ログインしてください。");
   }
   if (!res.ok) {
@@ -123,7 +122,7 @@ function goBack() {
 // ===== 検索 =====
 
 function normalize(s) {
-  return (s || "").replace(/\s　/g, "").toLowerCase();
+  return (s || "").replace(/[\s　]/g, "").toLowerCase();
 }
 
 function filterMansions(query) {
@@ -152,13 +151,15 @@ function renderLogin() {
     <div class="login-screen">
       <div class="login-box">
         <h2>サンリフォーム マンション検索</h2>
-        <p>GitHubアカウントでログインしてください。<br>
-           sunaidxpj org のメンバー限定です。</p>
+        <p>Microsoftアカウント（@sunreform.jp）でログインしてください。</p>
         <button onclick="startLogin()">
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+          <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
+            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
           </svg>
-          GitHubでログイン
+          Microsoftでサインイン
         </button>
       </div>
     </div>
@@ -166,10 +167,11 @@ function renderLogin() {
 }
 
 function renderHeader() {
+  const email = STATE.account?.username || "";
   return `
     <header>
       <h1>サンリフォーム マンション検索</h1>
-      <span class="user">@${escHtml(STATE.user)}</span>
+      <span class="user">${escHtml(email)}</span>
       <button class="logout" onclick="logout()">ログアウト</button>
     </header>
   `;
@@ -190,7 +192,7 @@ function renderList() {
     return `<div class="empty-state">該当するマンションが見つかりませんでした。</div>`;
   }
   const cards = STATE.filtered.map(m => `
-    <div class="card" onclick="showDetail(${JSON.stringify(m.key).replace(/"/g, "&quot;")})">
+    <div class="card" onclick='showDetail(${JSON.stringify(m.key)})'>
       <div class="name">${escHtml(m.name)}</div>
       <div class="city">${escHtml(m.city || "（市未登録）")}</div>
     </div>
@@ -250,7 +252,7 @@ function renderMain() {
         <div class="search">
           <input id="q" type="search" placeholder="マンション名で検索…" autocomplete="off">
         </div>
-        ${renderList()}
+        <div id="results-area">${renderList()}</div>
       `}
     </div>
   `;
@@ -259,44 +261,56 @@ function renderMain() {
     q.focus();
     q.addEventListener("input", e => {
       filterMansions(e.target.value);
-      // 結果エリアだけ再描画
-      const area = document.querySelector(".results, .empty-state, .meta, .loading, .error");
-      if (area) {
-        const parent = area.closest(".container");
-        const searchDiv = parent.querySelector(".search");
-        parent.innerHTML = "";
-        parent.appendChild(searchDiv);
-        parent.insertAdjacentHTML("beforeend", renderList());
-      }
+      const area = document.getElementById("results-area");
+      if (area) area.innerHTML = renderList();
     });
   }
 }
 
 function render() {
-  if (!STATE.token) {
+  if (!STATE.idToken) {
     renderLogin();
   } else {
     renderMain();
   }
 }
 
-// ===== 初期化 =====
-
 window.startLogin = startLogin;
 window.logout = logout;
 window.showDetail = showDetail;
 window.goBack = goBack;
 
-(function init() {
-  const token = getStoredToken();
-  if (token && isTokenValid(token)) {
-    STATE.token = token;
-    const p = parseJwt(token);
-    STATE.user = p.sub;
+// ===== 初期化 =====
+
+(async function init() {
+  // Redirect コールバック処理
+  try {
+    const res = await msalClient.handleRedirectPromise();
+    if (res) {
+      STATE.idToken = res.idToken;
+      STATE.account = res.account;
+    }
+  } catch (e) {
+    console.error("handleRedirectPromise error:", e);
+    STATE.lastError = `サインインに失敗しました: ${e.errorMessage || e.message}`;
     render();
-    loadMansions();
-  } else {
-    clearToken();
-    render();
+    return;
   }
+
+  // 既存セッション復元
+  if (!STATE.idToken) {
+    const account = msalClient.getAllAccounts()[0];
+    if (account) {
+      try {
+        const r = await msalClient.acquireTokenSilent({ ...loginRequest, account });
+        STATE.idToken = r.idToken;
+        STATE.account = account;
+      } catch (e) {
+        // silent 失敗なら未ログインとして扱う
+      }
+    }
+  }
+
+  render();
+  if (STATE.idToken) loadMansions();
 })();
