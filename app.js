@@ -32,6 +32,8 @@ const STATE = {
   filtered: [],
   selected: null,
   detail: null,
+  rawNotes: null,       // null=未取得, []=空, [...]=取得済
+  rawNotesOpen: false,
   lastError: null,
 };
 
@@ -101,6 +103,8 @@ async function loadMansions() {
 async function showDetail(key) {
   STATE.selected = key;
   STATE.detail = null;
+  STATE.rawNotes = null;
+  STATE.rawNotesOpen = false;
   STATE.lastError = null;
   render();
   try {
@@ -116,6 +120,22 @@ async function showDetail(key) {
 function goBack() {
   STATE.selected = null;
   STATE.detail = null;
+  STATE.rawNotes = null;
+  STATE.rawNotesOpen = false;
+  render();
+}
+
+async function toggleRawNotes() {
+  STATE.rawNotesOpen = !STATE.rawNotesOpen;
+  if (STATE.rawNotesOpen && STATE.rawNotes === null) {
+    try {
+      const data = await api("mansion-raw-notes", { key: STATE.selected });
+      STATE.rawNotes = data.items || [];
+    } catch (e) {
+      STATE.rawNotes = [];
+      STATE.lastError = e.message;
+    }
+  }
   render();
 }
 
@@ -172,6 +192,50 @@ function profitRate(contract, profit) {
   const c = Number(contract), p = Number(profit);
   if (!Number.isFinite(c) || c === 0 || !Number.isFinite(p)) return "";
   return `${(p / c * 100).toFixed(1)}%`;
+}
+
+function sourceLabel(source) {
+  if (source === "app") return { text: "アプリ入力", cls: "src-app" };
+  if (source === "dm_completed") return { text: "完工DM返信", cls: "src-dm" };
+  if (source === "dm_new") return { text: "新規引合DM返信", cls: "src-dm" };
+  if (source === "legacy_import") return { text: "移行データ", cls: "src-legacy" };
+  return { text: source || "不明", cls: "src-legacy" };
+}
+
+function renderRawNotesSection(m) {
+  const count = m.raw_notes_count || 0;
+  const label = STATE.rawNotesOpen
+    ? `▾ 原文を隠す`
+    : `▸ 原文を見る（${count}件）`;
+  if (count === 0 && !STATE.rawNotesOpen) return "";
+  let body = "";
+  if (STATE.rawNotesOpen) {
+    if (STATE.rawNotes === null) {
+      body = `<div class="loading">読み込み中…</div>`;
+    } else if (!STATE.rawNotes.length) {
+      body = `<div class="empty-state" style="padding:16px">原文はまだありません。</div>`;
+    } else {
+      body = `<div class="raw-list">` + STATE.rawNotes.map(n => {
+        const src = sourceLabel(n.source);
+        const parts = [
+          `<span class="${src.cls}">${escHtml(src.text)}</span>`,
+          escHtml(n.author_name || ""),
+          formatDate(n.created_at),
+          n.site_id ? `現場 ${escHtml(n.site_id)}` : "",
+        ].filter(Boolean);
+        return `
+          <div class="raw-item">
+            <div class="meta">${parts.join(" · ")}</div>
+            <div class="body">${escHtml(n.body || "")}</div>
+          </div>
+        `;
+      }).join("") + `</div>`;
+    }
+  }
+  return `
+    <button class="raw-toggle" onclick="toggleRawNotes()">${label}</button>
+    ${body}
+  `;
 }
 
 function statusChip(status) {
@@ -288,6 +352,7 @@ function renderDetail() {
           </div>
         </div>
         ${m.memo_updated_at ? `<div style="color:#6e6e73;font-size:12px;margin-top:6px">最終更新: ${formatDate(m.memo_updated_at)} by ${escHtml(m.memo_updated_by || "")}</div>` : ""}
+        ${renderRawNotesSection(m)}
       </div>
       <div class="section sites">
         <h3>関連する現場</h3>
@@ -348,7 +413,7 @@ async function saveMemo() {
   const btn = document.getElementById("memo-save-btn");
   const status = document.getElementById("memo-status");
   btn.disabled = true;
-  status.textContent = "保存中…";
+  status.textContent = "保存中…（Geminiが要約を更新します）";
   try {
     const url = new URL(CONFIG.API_BASE);
     url.searchParams.set("action", "mansion-update-memo");
@@ -364,8 +429,18 @@ async function saveMemo() {
       const t = await res.text();
       throw new Error(`保存失敗: ${res.status} ${t}`);
     }
-    // ローカル STATE 更新して再描画
-    STATE.detail.mansion["申し送り"] = memo;
+    const data = await res.json().catch(() => ({}));
+    // 新仕様: バックエンドが Gemini 要約を summary で返す。
+    // 旧仕様フォールバック: 無ければユーザー入力をそのまま表示。
+    STATE.detail.mansion["申し送り"] =
+      (data.summary !== undefined) ? data.summary : memo;
+    if (typeof data.raw_notes_count === "number") {
+      STATE.detail.mansion.raw_notes_count = data.raw_notes_count;
+    }
+    // 原文キャッシュは無効化（次回展開時に再取得）
+    STATE.rawNotes = null;
+    STATE.detail.mansion.memo_updated_at = new Date().toISOString();
+    STATE.detail.mansion.memo_updated_by = STATE.account?.username || "";
     render();
   } catch (e) {
     status.textContent = e.message;
@@ -380,6 +455,7 @@ window.goBack = goBack;
 window.startEditMemo = startEditMemo;
 window.cancelEditMemo = cancelEditMemo;
 window.saveMemo = saveMemo;
+window.toggleRawNotes = toggleRawNotes;
 
 // ===== 初期化 =====
 
