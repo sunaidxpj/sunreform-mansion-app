@@ -58,7 +58,25 @@
   .empty-state, .loading { text-align: center; color: #6e6e73; padding: 40px 20px; }
   .back { cursor: pointer; background: none; border: 0; color: #0066cc; font-size: 14px; padding: 8px 0; }
   .back:hover { text-decoration: underline; }
-  .error { background: #fff2f0; border: 1px solid #ffccc7; color: #cf1322; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+  .error { background: #fff2f0; border: 1px solid #ffccc7; color: #cf1322; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .error .retry { background: #fff; border: 1px solid #cf1322; color: #cf1322; padding: 4px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+  .error .retry:hover { background: #cf1322; color: #fff; }
+
+  @media (max-width: 640px) {
+    header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+    header h1 { font-size: 16px; }
+    header .user { font-size: 12px; width: 100%; order: 3; margin-left: 0; }
+    .container { padding: 12px 16px; }
+    .detail { padding: 16px; }
+    .detail h2 { font-size: 17px; }
+    .sites table, .sites thead, .sites tbody, .sites tr, .sites td, .sites th { display: block; }
+    .sites thead { display: none; }
+    .sites tbody tr { border: 1px solid #e5e5ea; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: #fff; }
+    .sites tbody tr:hover { background: #fff; }
+    .sites td { padding: 3px 0; border: 0; text-align: left !important; font-size: 13px; }
+    .sites td::before { content: attr(data-label); font-weight: 500; color: #6e6e73; margin-right: 8px; min-width: 5em; display: inline-block; }
+    .sites td:empty, .sites td[data-empty="1"] { display: none; }
+  }
 </style>
 </head>
 <body>

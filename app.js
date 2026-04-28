@@ -6,6 +6,7 @@ const CONFIG = {
   AZURE_CLIENT_ID: "eef6d57e-fbbd-4d81-a5bd-26299819a205",
   REDIRECT_URI: "https://sunaidxpj.github.io/sunreform-mansion-app/",
   API_BASE: "https://sunbo-v2-504595374043.asia-northeast1.run.app",
+  LIST_CACHE_KEY: "sunreform_mansion_list_v1",
 };
 
 const msalConfig = {
@@ -62,6 +63,7 @@ async function startLogin() {
 }
 
 function logout() {
+  try { sessionStorage.removeItem(CONFIG.LIST_CACHE_KEY); } catch (_) {}
   msalClient.logoutRedirect({ postLogoutRedirectUri: CONFIG.REDIRECT_URI });
 }
 
@@ -89,10 +91,28 @@ async function api(action, params = {}) {
 
 async function loadMansions() {
   STATE.lastError = null;
+  // 1. キャッシュがあれば即表示（裏で最新取得）
+  try {
+    const cached = sessionStorage.getItem(CONFIG.LIST_CACHE_KEY);
+    if (cached) {
+      const items = JSON.parse(cached);
+      if (Array.isArray(items) && items.length) {
+        STATE.mansions = items;
+        render();
+      }
+    }
+  } catch (_) { /* 壊れていれば無視 */ }
+
+  // 2. 最新を取得
   try {
     const data = await api("mansion-list");
     STATE.mansions = data.items || [];
-    STATE.filtered = [];
+    try {
+      sessionStorage.setItem(CONFIG.LIST_CACHE_KEY, JSON.stringify(STATE.mansions));
+    } catch (_) {}
+    // 検索中なら再フィルタ
+    const q = document.getElementById("q")?.value;
+    if (q) filterMansions(q);
     render();
   } catch (e) {
     STATE.lastError = e.message;
@@ -142,7 +162,15 @@ async function toggleRawNotes() {
 // ===== 検索 =====
 
 function normalize(s) {
-  return (s || "").replace(/[\s　]/g, "").toLowerCase();
+  // NFKC: 全角英数→半角、半角ｶﾅ→全角ｶﾅ、互換文字統一
+  let t = String(s || "").normalize("NFKC").toLowerCase();
+  // 空白除去
+  t = t.replace(/[\s　]/g, "");
+  // カタカナ→ひらがな（NFKC後なので半角ｶﾅも全角化済み）
+  t = t.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  // 長音・中黒・各種ハイフン→無視（区切り扱い）
+  t = t.replace(/[ー‐\-–—・]/g, "");
+  return t;
 }
 
 function filterMansions(query) {
@@ -279,9 +307,16 @@ function renderHeader() {
   `;
 }
 
+function renderError(msg, retryFn) {
+  return `<div class="error">
+    <span>${escHtml(msg)}</span>
+    ${retryFn ? `<button class="retry" onclick="${retryFn}">再試行</button>` : ""}
+  </div>`;
+}
+
 function renderList() {
   if (STATE.lastError) {
-    return `<div class="error">${escHtml(STATE.lastError)}</div>`;
+    return renderError(STATE.lastError, "loadMansions()");
   }
   if (!STATE.mansions.length) {
     return `<div class="loading">マンション一覧を読み込み中…</div>`;
@@ -312,7 +347,7 @@ function renderDetail() {
   if (!STATE.detail) {
     return `
       <button class="back" onclick="goBack()">← 一覧に戻る</button>
-      ${STATE.lastError ? `<div class="error">${escHtml(STATE.lastError)}</div>` : `<div class="loading">読み込み中…</div>`}
+      ${STATE.lastError ? renderError(STATE.lastError, `showDetail(${JSON.stringify(STATE.selected)})`) : `<div class="loading">読み込み中…</div>`}
     `;
   }
   const m = STATE.detail.mansion || {};
@@ -323,17 +358,24 @@ function renderDetail() {
   });
   const 申し送り = (m["申し送り"] || "").trim();
   const sitesRows = sites.length
-    ? sites.map(s => `
+    ? sites.map(s => {
+        const addr = [s.contruction_add1, s.contruction_add2].filter(Boolean).join("") || s.city || "";
+        const status = s.construction_status || "";
+        const staff = s.main_staff || "";
+        const yen = formatYen(s.contract_amount);
+        const rate = profitRate(s.contract_amount, s.profit_amount);
+        const date = formatDate(s.reception_date || s.contract_date || s.synced_at);
+        return `
         <tr>
-          <td>${escHtml(s.id)}</td>
-          <td>${escHtml([s.contruction_add1, s.contruction_add2].filter(Boolean).join("") || s.city || "")}</td>
-          <td>${statusChip(s.construction_status)}</td>
-          <td>${escHtml(s.main_staff || "")}</td>
-          <td style="text-align:right">${escHtml(formatYen(s.contract_amount))}</td>
-          <td style="text-align:right">${escHtml(profitRate(s.contract_amount, s.profit_amount))}</td>
-          <td>${escHtml(formatDate(s.reception_date || s.contract_date || s.synced_at))}</td>
+          <td data-label="現場ID">${escHtml(s.id)}</td>
+          <td data-label="住所"${addr ? "" : ' data-empty="1"'}>${escHtml(addr)}</td>
+          <td data-label="工事状況"${status ? "" : ' data-empty="1"'}>${statusChip(status)}</td>
+          <td data-label="担当"${staff ? "" : ' data-empty="1"'}>${escHtml(staff)}</td>
+          <td data-label="工事金額" style="text-align:right"${yen ? "" : ' data-empty="1"'}>${escHtml(yen)}</td>
+          <td data-label="利益率" style="text-align:right"${rate ? "" : ' data-empty="1"'}>${escHtml(rate)}</td>
+          <td data-label="日付"${date ? "" : ' data-empty="1"'}>${escHtml(date)}</td>
         </tr>
-      `).join("")
+      `;}).join("")
     : `<tr><td colspan="7" style="text-align:center;color:#6e6e73;padding:24px">紐付く工事履歴がありません</td></tr>`;
   return `
     <button class="back" onclick="goBack()">← 一覧に戻る</button>
