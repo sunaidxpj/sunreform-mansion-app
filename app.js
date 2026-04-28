@@ -31,9 +31,11 @@ const STATE = {
   idToken: null,
   mansions: [],
   filtered: [],
+  sort: "site_count_desc",       // "site_count_desc" | "name_asc"
   selected: null,
   detail: null,
-  rawNotes: null,       // null=未取得, []=空, [...]=取得済
+  expandedSites: new Set(),       // 現場行の展開状態（site.id の集合）
+  rawNotes: null,                  // null=未取得, []=空, [...]=取得済
   rawNotesOpen: false,
   lastError: null,
 };
@@ -125,6 +127,7 @@ async function showDetail(key) {
   STATE.detail = null;
   STATE.rawNotes = null;
   STATE.rawNotesOpen = false;
+  STATE.expandedSites = new Set();
   STATE.lastError = null;
   render();
   try {
@@ -142,6 +145,16 @@ function goBack() {
   STATE.detail = null;
   STATE.rawNotes = null;
   STATE.rawNotesOpen = false;
+  STATE.expandedSites = new Set();
+  render();
+}
+
+function toggleSiteRow(siteId) {
+  if (STATE.expandedSites.has(siteId)) {
+    STATE.expandedSites.delete(siteId);
+  } else {
+    STATE.expandedSites.add(siteId);
+  }
   render();
 }
 
@@ -173,15 +186,38 @@ function normalize(s) {
   return t;
 }
 
+function sortItems(items) {
+  const arr = items.slice();
+  if (STATE.sort === "name_asc") {
+    arr.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));
+  } else {
+    // site_count_desc（既定）: 件数多い順、同点は名前順
+    arr.sort((a, b) =>
+      (b.site_count || 0) - (a.site_count || 0) ||
+      (a.name || "").localeCompare(b.name || "", "ja")
+    );
+  }
+  return arr;
+}
+
 function filterMansions(query) {
   const q = normalize(query);
   if (!q) {
     STATE.filtered = [];
     return;
   }
-  STATE.filtered = STATE.mansions
-    .filter(m => normalize(m.name).includes(q) || normalize(m.city).includes(q))
-    .slice(0, 100);
+  const matched = STATE.mansions.filter(m =>
+    normalize(m.name).includes(q) || normalize(m.city).includes(q)
+  );
+  STATE.filtered = sortItems(matched).slice(0, 100);
+}
+
+function changeSort(value) {
+  STATE.sort = value;
+  const q = document.getElementById("q")?.value || "";
+  filterMansions(q);
+  const area = document.getElementById("results-area");
+  if (area) area.innerHTML = renderList();
 }
 
 // ===== レンダリング =====
@@ -220,6 +256,51 @@ function profitRate(contract, profit) {
   const c = Number(contract), p = Number(profit);
   if (!Number.isFinite(c) || c === 0 || !Number.isFinite(p)) return "";
   return `${(p / c * 100).toFixed(1)}%`;
+}
+
+function staffWithRate(name, rate) {
+  if (!name) return "";
+  const r = Number(rate);
+  if (Number.isFinite(r) && r > 0 && r < 100) {
+    return `${name} (${r}%)`;
+  }
+  return name;
+}
+
+function buildSiteDetailRows(s) {
+  // 現場行展開時に表示する追加情報。空フィールドは省く。
+  const fields = [];
+  const recv = formatDate(s.reception_date);
+  const cont = formatDate(s.contract_date);
+  if (recv) fields.push(["受付日", recv]);
+  if (cont) fields.push(["契約日", cont]);
+  if (s.media_name) fields.push(["媒体", s.media_name]);
+  if (s.branch_name) fields.push(["店舗", s.branch_name]);
+  const total = formatYen(s.total_amount);
+  if (total) fields.push(["総額", total]);
+
+  const staff = [];
+  const main = staffWithRate(s.main_staff, s.main_division_rate);
+  const sub = staffWithRate(s.sub_staff, s.sub_division_rate);
+  const design = staffWithRate(s.design_staff, s.design_division_rate);
+  if (main) staff.push(`主担当: ${main}`);
+  if (sub) staff.push(`副担当: ${sub}`);
+  if (design) staff.push(`設計: ${design}`);
+  const extras = [];
+  for (const slot of [4, 5, 6]) {
+    const n = staffWithRate(s[`staff${slot}`], s[`staff${slot}_division_rate`]);
+    if (n) extras.push(n);
+  }
+  if (extras.length) staff.push(`他担当: ${extras.join(", ")}`);
+  if (s.charge_staff) staff.push(`担当者: ${s.charge_staff}`);
+  if (staff.length) fields.push(["担当", staff.join(" / ")]);
+
+  if (!fields.length) {
+    return `<div style="color:#6e6e73">追加情報なし</div>`;
+  }
+  return `<div class="grid">` + fields.map(([k, v]) =>
+    `<div><span class="k">${escHtml(k)}:</span><span class="v">${escHtml(v)}</span></div>`
+  ).join("") + `</div>`;
 }
 
 function sourceLabel(source) {
@@ -338,7 +419,14 @@ function renderList() {
     </div>
   `).join("");
   return `
-    <div class="meta">${STATE.filtered.length}件${STATE.filtered.length >= 100 ? " 以上（先頭100件を表示）" : ""}</div>
+    <div class="sort-bar">
+      <span>${STATE.filtered.length}件${STATE.filtered.length >= 100 ? " 以上（先頭100件を表示）" : ""}</span>
+      <span style="margin-left:auto">並び替え:</span>
+      <select onchange="changeSort(this.value)">
+        <option value="site_count_desc"${STATE.sort==="site_count_desc"?" selected":""}>工事件数（多い順）</option>
+        <option value="name_asc"${STATE.sort==="name_asc"?" selected":""}>名前順</option>
+      </select>
+    </div>
     <div class="results">${cards}</div>
   `;
 }
@@ -365,17 +453,24 @@ function renderDetail() {
         const yen = formatYen(s.contract_amount);
         const rate = profitRate(s.contract_amount, s.profit_amount);
         const date = formatDate(s.reception_date || s.contract_date || s.synced_at);
-        return `
-        <tr>
-          <td data-label="現場ID">${escHtml(s.id)}</td>
+        const expanded = STATE.expandedSites.has(s.id);
+        const arrow = `<span class="arrow">▸</span>`;
+        const idJson = JSON.stringify(s.id);
+        const mainTr = `
+        <tr class="site-row${expanded ? " expanded" : ""}" onclick='toggleSiteRow(${idJson})'>
+          <td data-label="現場ID">${arrow} ${escHtml(s.id)}</td>
           <td data-label="住所"${addr ? "" : ' data-empty="1"'}>${escHtml(addr)}</td>
           <td data-label="工事状況"${status ? "" : ' data-empty="1"'}>${statusChip(status)}</td>
           <td data-label="担当"${staff ? "" : ' data-empty="1"'}>${escHtml(staff)}</td>
           <td data-label="工事金額" style="text-align:right"${yen ? "" : ' data-empty="1"'}>${escHtml(yen)}</td>
           <td data-label="利益率" style="text-align:right"${rate ? "" : ' data-empty="1"'}>${escHtml(rate)}</td>
           <td data-label="日付"${date ? "" : ' data-empty="1"'}>${escHtml(date)}</td>
-        </tr>
-      `;}).join("")
+        </tr>`;
+        const detailTr = expanded
+          ? `<tr class="site-detail"><td colspan="7">${buildSiteDetailRows(s)}</td></tr>`
+          : "";
+        return mainTr + detailTr;
+      }).join("")
     : `<tr><td colspan="7" style="text-align:center;color:#6e6e73;padding:24px">紐付く工事履歴がありません</td></tr>`;
   return `
     <button class="back" onclick="goBack()">← 一覧に戻る</button>
@@ -498,6 +593,8 @@ window.startEditMemo = startEditMemo;
 window.cancelEditMemo = cancelEditMemo;
 window.saveMemo = saveMemo;
 window.toggleRawNotes = toggleRawNotes;
+window.toggleSiteRow = toggleSiteRow;
+window.changeSort = changeSort;
 
 // ===== 初期化 =====
 
