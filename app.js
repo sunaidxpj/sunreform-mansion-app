@@ -311,6 +311,72 @@ function sourceLabel(source) {
   return { text: source || "不明", cls: "src-legacy" };
 }
 
+// ANDPAD情報 セクション: バックエンドから ANDPAD情報 オブジェクトが来たら表示
+const ANDPAD_GROUPS = [
+  {
+    title: "物件",
+    fields: [
+      "物件備考",
+      "工事可能時間（選択）", "工事可能時間",
+      "土曜日の工事（選択）",
+      "駐車スペース（選択）", "駐車スペース",
+      "タバコ喫煙ルール（選択）",
+      "近隣承認（選択）", "近隣承認",
+      "近隣挨拶範囲（選択）", "近隣挨拶範囲",
+      "エレベーター", "オートロック",
+    ],
+  },
+  {
+    title: "管理",
+    fields: [
+      "管理人名", "管理人TEL",
+      "理事長名",
+      "管理会社名", "管理会社担当名", "管理会社TEL",
+      "管理体制", "勤務時間",
+    ],
+  },
+  {
+    title: "案件",
+    fields: [
+      "案件名", "案件種別", "案件フロー",
+      "案件備考", "その他",
+      "キーBOX", "集合ポスト",
+      "養生範囲（共用部）",
+      "遮音規制（選択）", "遮音規制",
+      "スリーブ穴あけ可否（選択）", "スリーブ穴あけ可否",
+      "インターホン交換", "専有部消火器",
+      "自火報工事の有無/指定業者",
+      "挨拶不在者（選択）", "挨拶不在者",
+    ],
+  },
+];
+
+function renderAndpadSection(m) {
+  const a = m["ANDPAD情報"];
+  if (!a || typeof a !== "object") return "";
+
+  const groupHtml = ANDPAD_GROUPS.map(g => {
+    const rows = g.fields
+      .filter(k => a[k] !== undefined && a[k] !== null && String(a[k]).trim() !== "")
+      .map(k => `
+        <div class="andpad-row">
+          <span class="andpad-k">${escHtml(k)}</span>
+          <span class="andpad-v">${escHtml(a[k])}</span>
+        </div>
+      `).join("");
+    if (!rows) return "";
+    return `<div class="andpad-group"><h4>${escHtml(g.title)}</h4>${rows}</div>`;
+  }).join("");
+
+  if (!groupHtml) return "";
+  return `
+    <div class="section">
+      <h3>ANDPAD情報 ${a.synced_at ? `<span class="andpad-synced">同期: ${formatDate(a.synced_at)}</span>` : ""}</h3>
+      <div class="andpad-body">${groupHtml}</div>
+    </div>
+  `;
+}
+
 function renderRawNotesSection(m) {
   const count = m.raw_notes_count || 0;
   const label = STATE.rawNotesOpen
@@ -491,6 +557,7 @@ function renderDetail() {
         ${m.memo_updated_at ? `<div style="color:#6e6e73;font-size:12px;margin-top:6px">最終更新: ${formatDate(m.memo_updated_at)} by ${escHtml(m.memo_updated_by || "")}</div>` : ""}
         ${renderRawNotesSection(m)}
       </div>
+      ${renderAndpadSection(m)}
       <div class="section sites">
         <h3>関連する現場</h3>
         <table>
