@@ -557,7 +557,6 @@ function renderDetail() {
         ${m.memo_updated_at ? `<div style="color:#6e6e73;font-size:12px;margin-top:6px">最終更新: ${formatDate(m.memo_updated_at)} by ${escHtml(m.memo_updated_by || "")}</div>` : ""}
         ${renderRawNotesSection(m)}
       </div>
-      ${renderAndpadSection(m)}
       <div class="section sites">
         <h3>関連する現場</h3>
         <table>
