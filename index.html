@@ -6,396 +6,616 @@
 <title>サンリフォーム マンション検索</title>
 <style>
   /* ==========================================================
-     UI_GUIDE.md §2 デザイントークン
-     アプリ固有色: マスタード（全アプリ共通）
+     UI_GUIDE.md §2 デザイントークン （Aipo DNA / マスタード単色化）
   ========================================================== */
   :root {
-    /* === Primary（マスタード） === */
+    /* === Neutrals === */
+    --bg: #FAFBFC;
+    --surface: #FFFFFF;
+    --surface-alt: #F5F7F9;
+    --neutral-faint: #EEF1F4;
+    --neutral-border: #DDE2E7;
+    --neutral-strong: #B0B7BF;
+    --text-muted: #6B7480;
+    --text: #2C3138;
+    --text-strong: #1A1F26;
+
+    /* === Feedback === */
+    --success: #2E8B6B;  --success-faint: #E8F3EE;
+    --warn:    #C77A1F;  --warn-faint:    #FBF1E2;
+    --danger:  #C04A3D;  --danger-faint:  #F8E8E5;
+    --info:    #2A6FB0;  --info-faint:    #E5EFF8;
+
+    /* === Radius === */
+    --radius-sm: 2px;
+    --radius:    4px;
+    --radius-lg: 8px;
+    --radius-pill: 999px;
+
+    /* === Spacing === */
+    --space-1: 4px;
+    --space-2: 6px;
+    --space-3: 8px;
+    --space-4: 12px;
+    --space-5: 16px;
+    --space-6: 24px;
+    --space-7: 32px;
+
+    /* === Typography === */
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+                   "Meiryo", sans-serif;
+    --fs-xs: 11px;
+    --fs-sm: 12px;
+    --fs-base: 13px;
+    --fs-md: 14px;
+    --fs-lg: 15px;
+    --fs-xl: 17px;
+    --fs-h: 22px;
+    --lh-tight: 1.4;
+    --lh-base: 1.6;
+
+    /* === Shadow === */
+    --shadow-none: none;
+    --shadow-sm: 0 1px 2px rgba(20, 30, 50, 0.04);
+    --shadow:    0 2px 6px rgba(20, 30, 50, 0.06);
+    --shadow-modal: 0 8px 24px rgba(20, 30, 50, 0.12);
+
+    /* === Motion === */
+    --t-fast: 0.12s ease;
+    --t-base: 0.2s ease;
+
+    /* === Primary （全アプリ共通：マスタード） === */
     --primary: #C97A2E;
     --primary-dark: #9C5C1F;
     --primary-faint: #FAEFDD;
-
-    /* === Neutrals === */
-    --bg: #F4F5F7;
-    --surface: #FFFFFF;
-    --surface-alt: #FAFBFC;
-    --border: #E1E4E8;
-    --border-soft: #EDEFF2;
-
-    --text: #1F2328;
-    --text-muted: #57606A;
-    --text-subtle: #8C959F;
-
-    /* === Feedback === */
-    --success: #1F883D;  --success-bg: #DAFBE1;
-    --info:    #0969DA;  --info-bg:    #DDF4FF;
-    --warn:    #9A6700;  --warn-bg:    #FFF8C5;
-    --danger:  #CF222E;  --danger-bg:  #FFEBE9;
-    --neutral-bg: #EAEEF2;
-
-    /* === Radius === */
-    --radius-sm: 6px;
-    --radius:    10px;
-    --radius-lg: 14px;
-    --radius-pill: 999px;
-
-    /* === Shadow === */
-    --shadow-sm: 0 1px 2px rgba(15,23,42,.05);
-    --shadow:    0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
-    --shadow-lg: 0 4px 14px rgba(15,23,42,.10);
-
-    /* === Motion === */
-    --t-fast: 120ms ease;
-    --t:      180ms ease;
   }
 
   * { box-sizing: border-box; }
 
-  /* ===== UI_GUIDE.md §3 タイポグラフィ ===== */
+  /* ===== UI_GUIDE.md §8 共通骨格 ===== */
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-                 "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
-    font-size: 14px;
-    line-height: 1.55;
+    font-family: var(--font-family);
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
     color: var(--text);
     background: var(--bg);
     margin: 0;
     -webkit-font-smoothing: antialiased;
   }
-
-  /* ===== UI_GUIDE.md §5 ヘッダー骨格 ===== */
   body::before {
-    content: ""; display: block; height: 3px;
+    content: "";
+    display: block;
+    height: 3px;
     background: linear-gradient(90deg, var(--primary), var(--primary-dark));
   }
+
+  /* ===== Header ===== */
   header {
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
-    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--neutral-border);
+    padding: var(--space-4) var(--space-6);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
   }
   header h1 {
-    margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
-    display: flex; align-items: center;
+    font-size: var(--fs-h);
+    font-weight: 600;
+    color: var(--text-strong);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
   }
   header h1::before {
-    content: ""; display: inline-block;
-    width: 4px; height: 18px; background: var(--primary);
-    border-radius: 2px; margin-right: 12px;
+    content: "";
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: var(--radius-sm);
   }
-  header .user { margin-left: auto; font-size: 13px; color: var(--text-muted); }
+  header .user {
+    margin-left: auto;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+  }
   header .logout {
-    background: none; border: 0; color: var(--text-muted);
-    font-size: 13px; padding: 6px 12px;
-    border-radius: var(--radius-sm); cursor: pointer;
+    height: 26px;
+    padding: 0 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    border-radius: var(--radius);
+    cursor: pointer;
     transition: var(--t-fast);
   }
-  header .logout:hover { background: var(--bg); color: var(--text); }
+  header .logout:hover {
+    background: var(--surface-alt);
+    color: var(--text);
+    border-color: var(--neutral-border);
+  }
 
-  /* ===== UI_GUIDE.md §4 レイアウト ===== */
-  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--space-6);
+  }
 
-  /* ===== 検索バー（input） UI_GUIDE.md §6.2 ===== */
+  /* ===== Inputs ===== */
+  input, select, textarea {
+    font-family: inherit;
+    font-size: var(--fs-base);
+    border: 1px solid var(--neutral-border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    background: var(--surface);
+    color: var(--text);
+    transition: var(--t-fast);
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-faint);
+  }
+  input::placeholder { color: var(--neutral-strong); }
+
+  /* ===== Search ===== */
   .search {
-    position: sticky; top: 0;
+    position: sticky;
+    top: 0;
     background: var(--bg);
-    padding: 16px 0 12px;
+    padding: var(--space-5) 0 var(--space-4);
     z-index: 10;
   }
   .search input {
-    width: 100%; padding: 14px 16px; font-size: 15px;
-    border: 1px solid var(--border); border-radius: var(--radius);
-    background: var(--surface); color: var(--text);
-    outline: none; transition: var(--t-fast);
+    font-size: var(--fs-md);
+    padding: 10px 14px;
   }
-  .search input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+
+  .meta {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    margin: var(--space-3) 2px;
   }
-  .search input::placeholder { color: var(--text-subtle); }
 
-  .meta { color: var(--text-muted); font-size: 13px; margin: 8px 2px; }
-
-  /* ===== 並び替えバー ===== */
+  /* ===== Sort bar ===== */
   .sort-bar {
-    display: flex; align-items: center; gap: 8px;
-    margin: 12px 2px; color: var(--text-muted); font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: var(--space-4) 2px;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
   }
   .sort-bar select {
-    width: auto; padding: 6px 12px; font-size: 13px;
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    background: var(--surface); color: var(--text);
-    cursor: pointer; transition: var(--t-fast);
-  }
-  .sort-bar select:hover { border-color: var(--text-subtle); }
-  .sort-bar select:focus {
-    outline: none; border-color: var(--primary);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+    width: auto;
+    padding: 6px 10px;
+    font-size: var(--fs-sm);
   }
 
-  /* ===== UI_GUIDE.md §6.3 カード ===== */
-  .results { display: grid; gap: 8px; }
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 14px 18px;
-    box-shadow: var(--shadow-sm);
+  /* ===== UI_GUIDE.md §3 ボタン ===== */
+  .btn {
+    height: 32px;
+    padding: 0 14px;
+    font-size: var(--fs-base);
+    border: 1px solid var(--neutral-border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: var(--radius);
+    transition: var(--t-fast);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
   }
-  .card.interactive { cursor: pointer; transition: var(--t-fast); }
+  .btn:hover { background: var(--surface-alt); border-color: var(--neutral-strong); }
+  .btn:active { background: var(--neutral-faint); }
+  .btn:disabled { background: var(--surface-alt); color: var(--neutral-strong); cursor: not-allowed; }
+  .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+  }
+  .btn-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+  }
+  .btn-sm {
+    height: 26px;
+    padding: 0 10px;
+    font-size: var(--fs-sm);
+  }
+
+  /* App-specific buttons (.btn 系の継承) */
+  .edit-memo {
+    height: 26px;
+    padding: 0 10px;
+    font-size: var(--fs-sm);
+    border: 1px solid var(--neutral-border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--t-fast);
+  }
+  .edit-memo:hover { background: var(--surface-alt); border-color: var(--neutral-strong); }
+
+  .back {
+    height: 32px;
+    padding: 0 14px;
+    font-size: var(--fs-base);
+    border: 1px solid var(--neutral-border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--t-fast);
+  }
+  .back:hover { background: var(--surface-alt); border-color: var(--neutral-strong); }
+
+  /* ===== UI_GUIDE.md §5 カード ===== */
+  .results { display: grid; gap: var(--space-3); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--neutral-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+  }
+  .card.interactive {
+    cursor: pointer;
+    transition: var(--t-fast);
+  }
   .card.interactive:hover {
     border-color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-sm);
   }
-  .card .name { font-weight: 600; font-size: 15px; letter-spacing: -0.005em; }
-  .card .city { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+  .card .name {
+    font-weight: 600;
+    font-size: var(--fs-md);
+    color: var(--text-strong);
+  }
+  .card .city {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    margin-top: var(--space-1);
+  }
 
-  /* ===== UI_GUIDE.md §6.4 chip ===== */
-  .chip {
-    display: inline-block; padding: 3px 10px;
-    font-size: 12px; font-weight: 500;
-    border-radius: var(--radius-pill); white-space: nowrap;
+  /* ===== UI_GUIDE.md §6.1 チップ ===== */
+  [class*="chip-"] {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 10px;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    border-radius: var(--radius-pill);
   }
-  .chip-success { background: var(--success-bg); color: var(--success); }
-  .chip-info    { background: var(--info-bg);    color: var(--info); }
-  .chip-warn    { background: var(--warn-bg);    color: var(--warn); }
-  .chip-danger  { background: var(--danger-bg);  color: var(--danger); }
-  .chip-muted   { background: var(--neutral-bg); color: var(--text-muted); }
-  .chip-primary { background: var(--primary); color: #fff; }
+  .chip-success { background: var(--success-faint); color: var(--success); }
+  .chip-info    { background: var(--info-faint);    color: var(--info); }
+  .chip-warn    { background: var(--warn-faint);    color: var(--warn); }
+  .chip-danger  { background: var(--danger-faint);  color: var(--danger); }
+  .chip-muted   { background: var(--neutral-faint); color: var(--text-muted); }
+  .chip-primary { background: var(--primary-faint); color: var(--primary-dark); }
 
   .count-badge {
-    display: inline-block; margin-left: 8px;
-    background: var(--primary); color: #fff;
-    font-size: 11px; font-weight: 600;
-    padding: 2px 8px; border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    margin-left: var(--space-3);
+    padding: 0 10px;
+    background: var(--primary-faint);
+    color: var(--primary-dark);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    border-radius: var(--radius-pill);
     vertical-align: middle;
   }
 
-  /* ===== 詳細画面 ===== */
+  /* ===== Detail （カード亜種） ===== */
   .detail {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px;
-    margin-top: 12px; box-shadow: var(--shadow-sm);
+    background: var(--surface);
+    border: 1px solid var(--neutral-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    margin-top: var(--space-4);
   }
-  .detail h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -0.015em; }
-  .detail .sub { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
-  .detail .section { margin-top: 24px; }
+  .detail h2 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--fs-h);
+    font-weight: 600;
+    color: var(--text-strong);
+  }
+  .detail .sub {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    margin-bottom: var(--space-5);
+  }
+  .detail .section { margin-top: var(--space-6); }
 
-  /* ===== UI_GUIDE.md §6.8 セクション見出し ===== */
+  /* ===== UI_GUIDE.md §6.3 セクション見出し ===== */
   .section-title, .detail .section h3 {
-    font-size: 12px; font-weight: 700;
-    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;
-    margin: 0 0 12px; padding-left: 12px; position: relative;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .section-title::before, .detail .section h3::before {
-    content: ""; position: absolute; left: 0; top: 50%;
-    transform: translateY(-50%);
-    width: 3px; height: 14px;
-    background: var(--primary); border-radius: 2px;
-  }
-
-  /* ===== UI_GUIDE.md §6.1 ボタン（編集・戻る等） ===== */
-  .btn {
-    padding: 7px 16px; font-size: 13px; font-weight: 500;
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    background: var(--surface); color: var(--text);
-    cursor: pointer; transition: var(--t-fast);
-  }
-  .btn:hover { background: var(--bg); }
-  .btn-primary {
-    background: var(--primary); border-color: var(--primary); color: #fff;
-  }
-  .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
-  .btn-pill { border-radius: var(--radius-pill); padding: 4px 12px; font-size: 12px; }
-
-  .edit-memo {
-    background: transparent; border: 1px solid var(--border);
-    color: var(--primary);
-    padding: 4px 12px; border-radius: var(--radius-pill);
-    font-size: 12px; font-weight: 500;
-    cursor: pointer; transition: var(--t-fast);
-  }
-  .edit-memo:hover { background: var(--primary-faint); border-color: var(--primary); }
-
-  .back {
-    cursor: pointer; background: none; border: 0;
-    color: var(--text-muted); font-size: 14px; font-weight: 500;
-    padding: 8px 0;
-    transition: var(--t-fast);
-  }
-  .back:hover { color: var(--primary); }
-
-  /* ===== UI_GUIDE.md §6.9 callout（申し送り欄） ===== */
-  .callout {
-    background: var(--primary-faint);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--text-strong);
+    padding-left: 10px;
     border-left: 3px solid var(--primary);
-    padding: 14px 18px; border-radius: var(--radius-sm);
-    font-size: 14px; line-height: 1.7;
-    white-space: pre-wrap; color: var(--text);
+    margin: 0 0 var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  /* ===== UI_GUIDE.md §6.2 コールアウト ===== */
+  .callout {
+    padding: var(--space-4);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--primary);
+    background: var(--primary-faint);
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
+    white-space: pre-wrap;
+    color: var(--text);
   }
   .callout.empty {
     background: var(--surface-alt);
-    border-left-color: var(--border-soft);
-    color: var(--text-subtle); font-style: italic;
+    border-left-color: var(--neutral-border);
+    color: var(--text-muted);
+    font-style: italic;
   }
-  .callout-info    { background: var(--info-bg);    border-left-color: var(--info); }
-  .callout-warn    { background: var(--warn-bg);    border-left-color: var(--warn); }
-  .callout-danger  { background: var(--danger-bg);  border-left-color: var(--danger); }
+  .callout-info   { background: var(--info-faint);   border-left-color: var(--info); }
+  .callout-warn   { background: var(--warn-faint);   border-left-color: var(--warn); }
+  .callout-danger { background: var(--danger-faint); border-left-color: var(--danger); }
 
-  /* ===== 原文表示（raw_notes） ===== */
+  /* ===== Raw notes ===== */
   .raw-toggle {
-    background: none; border: 0; color: var(--primary);
-    cursor: pointer; font-size: 13px; font-weight: 500;
-    padding: 8px 0;
+    background: none;
+    border: 0;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    padding: var(--space-3) 0;
     transition: var(--t-fast);
   }
   .raw-toggle:hover { color: var(--primary-dark); text-decoration: underline; }
-  .raw-list { margin-top: 8px; display: grid; gap: 8px; }
+  .raw-list { margin-top: var(--space-3); display: grid; gap: var(--space-3); }
   .raw-item {
-    background: var(--surface-alt); border: 1px solid var(--border-soft);
-    border-radius: var(--radius-sm); padding: 12px 16px;
-    font-size: 13px; transition: var(--t-fast);
+    background: var(--surface-alt);
+    border: 1px solid var(--neutral-border);
+    border-radius: var(--radius);
+    padding: var(--space-4);
+    font-size: var(--fs-sm);
   }
-  .raw-item:hover { border-color: var(--border); }
   .raw-item .meta {
-    color: var(--text-muted); font-size: 12px; margin-bottom: 4px;
-    display: flex; gap: 8px; flex-wrap: wrap;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    margin-bottom: var(--space-1);
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
   }
-  .raw-item .src-app    { color: var(--info);     font-weight: 500; }
-  .raw-item .src-dm     { color: var(--success);  font-weight: 500; }
-  .raw-item .src-legacy { color: var(--text-subtle); font-weight: 500; }
-  .raw-item .body { white-space: pre-wrap; line-height: 1.6; }
+  .raw-item .src-app    { color: var(--info);     font-weight: 600; }
+  .raw-item .src-dm     { color: var(--success);  font-weight: 600; }
+  .raw-item .src-legacy { color: var(--text-muted); font-weight: 600; }
+  .raw-item .body { white-space: pre-wrap; line-height: var(--lh-base); }
 
-  /* ===== ANDPAD情報セクション（現在は未利用） ===== */
+  /* ===== ANDPAD section （現状未利用） ===== */
   .andpad-synced {
-    color: var(--text-muted); font-size: 11px; font-weight: 400;
-    margin-left: 8px; text-transform: none; letter-spacing: normal;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+    font-weight: 400;
+    margin-left: var(--space-3);
   }
-  .andpad-body { display: grid; gap: 16px; }
-  .andpad-group h4 { margin: 0 0 8px; font-size: 13px; color: var(--text); font-weight: 600; }
-  .andpad-row { display: flex; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--border-soft); font-size: 13px; }
+  .andpad-body { display: grid; gap: var(--space-5); }
+  .andpad-group h4 {
+    margin: 0 0 var(--space-3);
+    font-size: var(--fs-base);
+    color: var(--text-strong);
+    font-weight: 600;
+  }
+  .andpad-row {
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-1) 0;
+    border-bottom: 1px solid var(--neutral-faint);
+    font-size: var(--fs-base);
+  }
   .andpad-row:last-child { border-bottom: 0; }
   .andpad-k { color: var(--text-muted); min-width: 9em; flex-shrink: 0; }
   .andpad-v { color: var(--text); white-space: pre-wrap; word-break: break-word; }
 
-  /* ===== UI_GUIDE.md §6.5 テーブル ===== */
+  /* ===== UI_GUIDE.md §11.2 テーブル ===== */
   .sites table {
-    width: 100%; border-collapse: collapse; font-size: 13px;
-    background: var(--surface); border-radius: var(--radius-sm);
-    overflow: hidden;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--fs-base);
   }
   .sites th {
     background: var(--surface-alt);
-    text-align: left; padding: 12px 16px;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
-    color: var(--text-muted); text-transform: uppercase;
-    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    color: var(--text-strong);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--neutral-border);
+    text-align: left;
+    font-size: var(--fs-sm);
   }
   .sites td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-soft);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--neutral-faint);
     vertical-align: middle;
   }
   .sites tbody tr.site-row { cursor: pointer; transition: background var(--t-fast); }
   .sites tbody tr.site-row:hover { background: var(--primary-faint); }
   .sites tbody tr.site-row.expanded { background: var(--primary-faint); }
   .sites tbody tr.site-row .arrow {
-    display: inline-block; width: 12px;
-    color: var(--text-subtle); transition: transform var(--t);
+    display: inline-block;
+    width: 12px;
+    color: var(--text-muted);
+    transition: transform var(--t-base);
   }
   .sites tbody tr.site-row.expanded .arrow {
-    transform: rotate(90deg); color: var(--primary);
+    transform: rotate(90deg);
+    color: var(--primary);
   }
   .sites tbody tr.site-detail td {
     background: var(--primary-faint);
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-soft);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--neutral-border);
   }
   .sites tbody tr.site-detail .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 8px 24px; font-size: 13px;
+    gap: var(--space-3) var(--space-6);
+    font-size: var(--fs-base);
   }
   .sites tbody tr.site-detail .k {
-    color: var(--text-muted); margin-right: 6px; font-weight: 500;
+    color: var(--text-muted);
+    margin-right: var(--space-2);
+    font-weight: 500;
   }
 
-  /* ===== ログイン画面 ===== */
+  /* ===== Login screen ===== */
   .login-screen {
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--primary-faint) 0%, var(--bg) 70%);
+    background: var(--bg);
   }
   .login-box {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); padding: 32px;
-    text-align: center; max-width: 420px;
-    box-shadow: var(--shadow-lg);
+    background: var(--surface);
+    border: 1px solid var(--neutral-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-7);
+    text-align: center;
+    max-width: 420px;
   }
-  .login-box h2 { margin: 0 0 8px; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
-  .login-box p { color: var(--text-muted); margin: 0 0 24px; font-size: 14px; line-height: 1.6; }
+  .login-box h2 {
+    margin: 0 0 var(--space-3);
+    font-size: var(--fs-h);
+    font-weight: 600;
+    color: var(--text-strong);
+  }
+  .login-box p {
+    color: var(--text-muted);
+    margin: 0 0 var(--space-6);
+    font-size: var(--fs-base);
+    line-height: var(--lh-base);
+  }
   .login-box button {
-    background: var(--surface); color: var(--text);
-    border: 1px solid var(--border);
-    padding: 12px 24px; border-radius: var(--radius-sm);
-    font-size: 15px; font-weight: 500;
-    cursor: pointer; transition: var(--t-fast);
-    display: inline-flex; align-items: center; gap: 8px;
+    height: 36px;
+    padding: 0 18px;
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    color: #fff;
+    border-radius: var(--radius);
+    font-size: var(--fs-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--t-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
   }
   .login-box button:hover {
-    border-color: var(--primary); background: var(--primary-faint);
-    color: var(--primary-dark);
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
   }
 
-  /* ===== その他 ===== */
+  /* ===== Empty / loading ===== */
   .empty-state, .loading {
-    text-align: center; color: var(--text-muted);
-    padding: 32px 16px; font-size: 14px;
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-7) var(--space-5);
+    font-size: var(--fs-base);
   }
+
+  /* ===== Error （callout-danger 系） ===== */
   .error {
-    background: var(--danger-bg); color: var(--danger);
-    padding: 12px 16px; border-radius: var(--radius-sm);
-    margin: 12px 0; font-size: 14px;
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--danger-faint);
+    color: var(--danger);
+    padding: var(--space-4);
+    border-radius: var(--radius);
+    margin: var(--space-4) 0;
+    font-size: var(--fs-base);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    border-left: 3px solid var(--danger);
   }
   .error .retry {
+    height: 26px;
+    padding: 0 10px;
     background: var(--surface);
-    border: 1px solid var(--danger); color: var(--danger);
-    padding: 4px 12px; border-radius: var(--radius-sm);
-    font-size: 13px; font-weight: 500;
-    cursor: pointer; transition: var(--t-fast);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: var(--radius);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--t-fast);
   }
   .error .retry:hover { background: var(--danger); color: #fff; }
 
-  /* ===== モバイル ===== */
-  @media (max-width: 640px) {
-    header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
-    header h1 { font-size: 15px; }
+  /* ===== UI_GUIDE.md §15.2 レスポンシブ（スマホ） ===== */
+  @media (max-width: 767px) {
+    header {
+      padding: var(--space-3) var(--space-5);
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+    header h1 { font-size: var(--fs-xl); }
     header h1::before { height: 16px; }
-    header .user { font-size: 12px; width: 100%; order: 3; margin-left: 0; }
-    .container { padding: 12px 16px; }
-    .detail { padding: 16px; }
-    .detail h2 { font-size: 17px; }
+    header .user {
+      font-size: var(--fs-xs);
+      width: 100%;
+      order: 3;
+      margin-left: 0;
+    }
+    .container { padding: var(--space-4) var(--space-5); }
+    .detail { padding: var(--space-5); }
+    .detail h2 { font-size: var(--fs-xl); }
 
     .andpad-row { flex-direction: column; gap: 0; }
-    .andpad-k { font-size: 12px; }
+    .andpad-k { font-size: var(--fs-sm); }
 
     .sites table, .sites thead, .sites tbody, .sites tr, .sites td, .sites th { display: block; }
     .sites thead { display: none; }
     .sites tbody tr {
-      border: 1px solid var(--border); border-radius: var(--radius-sm);
-      padding: 12px 16px; margin-bottom: 8px; background: var(--surface);
+      border: 1px solid var(--neutral-border);
+      border-radius: var(--radius);
+      padding: var(--space-4);
+      margin-bottom: var(--space-3);
+      background: var(--surface);
     }
     .sites tbody tr:hover { background: var(--surface); }
     .sites tbody tr.site-row:hover { background: var(--primary-faint); }
-    .sites td { padding: 4px 0; border: 0; text-align: left !important; font-size: 13px; }
+    .sites td {
+      padding: 4px 0;
+      border: 0;
+      text-align: left !important;
+      font-size: var(--fs-base);
+    }
     .sites td::before {
       content: attr(data-label);
-      font-weight: 500; color: var(--text-muted);
-      margin-right: 8px; min-width: 5em; display: inline-block;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-right: var(--space-3);
+      min-width: 5em;
+      display: inline-block;
     }
     .sites td:empty, .sites td[data-empty="1"] { display: none; }
-    .sites tbody tr.site-detail td { padding: 8px; }
+    .sites tbody tr.site-detail td { padding: var(--space-3); }
     .sites tbody tr.site-detail .grid { grid-template-columns: 1fr; gap: 4px 0; }
   }
 </style>
