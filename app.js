@@ -416,11 +416,11 @@ function renderRawNotesSection(m) {
 function statusChip(status) {
   if (!status) return "";
   const s = String(status);
-  let tone = "neutral";
+  let tone = "muted";
   if (s.includes("完工") || s.includes("入金")) tone = "success";
-  else if (s.includes("進行") || s.includes("着工") || s.includes("契約")) tone = "active";
+  else if (s.includes("進行") || s.includes("着工") || s.includes("契約")) tone = "info";
   else if (s.includes("断") || s.includes("失注") || s.includes("中止")) tone = "muted";
-  return `<span class="status-chip status-${tone}">${escHtml(s)}</span>`;
+  return `<span class="chip chip-${tone}">${escHtml(s)}</span>`;
 }
 
 function renderLogin() {
@@ -545,7 +545,7 @@ function renderDetail() {
       <div class="sub">${escHtml(formatAddress(m))}　/　現場履歴 ${sites.length}件</div>
       <div class="section">
         <h3>申し送り事項 <button class="edit-memo" onclick="startEditMemo()">編集</button></h3>
-        <div id="memo-display" class="申し送り${申し送り ? "" : " empty"}">${申し送り ? escHtml(申し送り) : "（未登録）"}</div>
+        <div id="memo-display" class="callout${申し送り ? "" : " empty"}">${申し送り ? escHtml(申し送り) : "（未登録）"}</div>
         <div id="memo-editor" style="display:none">
           <textarea id="memo-textarea" rows="6" style="width:100%;padding:12px;font-family:inherit;font-size:14px;border:1px solid #d2d2d7;border-radius:8px;resize:vertical">${escHtml(申し送り)}</textarea>
           <div style="margin-top:8px;display:flex;gap:8px">
