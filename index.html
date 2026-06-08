@@ -407,6 +407,43 @@
   .raw-item .src-dm     { color: var(--success);  font-weight: 600; }
   .raw-item .src-legacy { color: var(--text-muted); font-weight: 600; }
   .raw-item .body { white-space: pre-wrap; line-height: var(--lh-base); }
+  .raw-item .note-actions {
+    display: inline-flex;
+    gap: var(--space-2);
+    margin-left: auto;
+  }
+  .note-btn {
+    background: none;
+    border: 1px solid var(--neutral-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 8px;
+    transition: var(--t-fast);
+  }
+  .note-btn:hover { border-color: var(--primary); color: var(--primary); }
+  .note-btn-primary { border-color: var(--primary); color: var(--primary); font-weight: 600; }
+  .note-btn-primary:hover { background: var(--primary); color: #fff; }
+  .note-btn-danger:hover { border-color: var(--danger); color: var(--danger); }
+  .raw-item-editing { border-color: var(--primary); }
+  .note-edit-ta {
+    width: 100%;
+    margin-top: var(--space-2);
+    padding: var(--space-3);
+    font-family: inherit;
+    font-size: var(--fs-sm);
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm);
+    resize: vertical;
+    box-sizing: border-box;
+  }
+  .note-edit-actions {
+    display: flex;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    align-items: center;
+  }
 
   /* ===== ANDPAD section （現状未利用） ===== */
   .andpad-synced {

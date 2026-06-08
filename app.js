@@ -37,6 +37,7 @@ const STATE = {
   expandedSites: new Set(),       // 現場行の展開状態（site.id の集合）
   rawNotes: null,                  // null=未取得, []=空, [...]=取得済
   rawNotesOpen: false,
+  editingNoteId: null,            // インライン編集中の note_id
   lastError: null,
 };
 
@@ -145,6 +146,7 @@ function goBack() {
   STATE.detail = null;
   STATE.rawNotes = null;
   STATE.rawNotesOpen = false;
+  STATE.editingNoteId = null;
   STATE.expandedSites = new Set();
   render();
 }
@@ -160,6 +162,7 @@ function toggleSiteRow(siteId) {
 
 async function toggleRawNotes() {
   STATE.rawNotesOpen = !STATE.rawNotesOpen;
+  STATE.editingNoteId = null;
   if (STATE.rawNotesOpen && STATE.rawNotes === null) {
     try {
       const data = await api("mansion-raw-notes", { key: STATE.selected });
@@ -170,6 +173,72 @@ async function toggleRawNotes() {
     }
   }
   render();
+}
+
+async function deleteNote(noteId) {
+  if (!confirm("この原文を削除しますか？\n（削除後、Geminiが申し送りを自動再要約します）")) return;
+  try {
+    const url = new URL(CONFIG.API_BASE);
+    url.searchParams.set("action", "mansion-delete-note");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${STATE.idToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ key: STATE.selected, note_id: noteId }),
+    });
+    if (!res.ok) throw new Error(`削除失敗: ${res.status} ${await res.text()}`);
+    const data = await res.json();
+    STATE.rawNotes = (STATE.rawNotes || []).filter(n => n.id !== noteId);
+    if (STATE.detail?.mansion) {
+      if (data.summary !== undefined) STATE.detail.mansion["申し送り"] = data.summary;
+      if (typeof data.raw_notes_count === "number") STATE.detail.mansion.raw_notes_count = data.raw_notes_count;
+    }
+    render();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function startEditNote(noteId) {
+  STATE.editingNoteId = noteId;
+  render();
+  setTimeout(() => document.getElementById("edit-note-ta")?.focus(), 0);
+}
+
+function cancelEditNote() {
+  STATE.editingNoteId = null;
+  render();
+}
+
+async function saveEditNote(noteId) {
+  const ta = document.getElementById("edit-note-ta");
+  const statusEl = document.getElementById("note-edit-status");
+  if (!ta) return;
+  const newBody = ta.value.trim();
+  if (!newBody) { alert("内容を入力してください"); return; }
+  if (statusEl) statusEl.textContent = "保存中…";
+  try {
+    const url = new URL(CONFIG.API_BASE);
+    url.searchParams.set("action", "mansion-edit-note");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${STATE.idToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ key: STATE.selected, note_id: noteId, body: newBody }),
+    });
+    if (!res.ok) throw new Error(`保存失敗: ${res.status} ${await res.text()}`);
+    const data = await res.json();
+    if (STATE.rawNotes) {
+      const idx = STATE.rawNotes.findIndex(n => n.id === noteId);
+      if (idx !== -1) STATE.rawNotes[idx] = { ...STATE.rawNotes[idx], body: newBody };
+    }
+    if (STATE.detail?.mansion) {
+      if (data.summary !== undefined) STATE.detail.mansion["申し送り"] = data.summary;
+      if (typeof data.raw_notes_count === "number") STATE.detail.mansion.raw_notes_count = data.raw_notes_count;
+    }
+    STATE.editingNoteId = null;
+    render();
+  } catch (e) {
+    if (statusEl) statusEl.textContent = e.message;
+  }
 }
 
 // ===== 検索 =====
@@ -379,9 +448,7 @@ function renderAndpadSection(m) {
 
 function renderRawNotesSection(m) {
   const count = m.raw_notes_count || 0;
-  const label = STATE.rawNotesOpen
-    ? `▾ 原文を隠す`
-    : `▸ 原文を見る（${count}件）`;
+  const label = STATE.rawNotesOpen ? `▾ 原文を隠す` : `▸ 原文を見る（${count}件）`;
   if (count === 0 && !STATE.rawNotesOpen) return "";
   let body = "";
   if (STATE.rawNotesOpen) {
@@ -398,12 +465,28 @@ function renderRawNotesSection(m) {
           formatDate(n.created_at),
           n.site_id ? `現場 ${escHtml(n.site_id)}` : "",
         ].filter(Boolean);
+        const actions = n.can_edit ? `
+          <div class="note-actions">
+            <button class="note-btn" onclick="startEditNote(${JSON.stringify(n.id)})">編集</button>
+            <button class="note-btn note-btn-danger" onclick="deleteNote(${JSON.stringify(n.id)})">削除</button>
+          </div>` : "";
+        if (STATE.editingNoteId === n.id) {
+          return `
+            <div class="raw-item raw-item-editing">
+              <div class="meta">${parts.join(" · ")}</div>
+              <textarea id="edit-note-ta" class="note-edit-ta" rows="4">${escHtml(n.body || "")}</textarea>
+              <div class="note-edit-actions">
+                <button class="note-btn note-btn-primary" onclick="saveEditNote(${JSON.stringify(n.id)})">保存</button>
+                <button class="note-btn" onclick="cancelEditNote()">キャンセル</button>
+                <span id="note-edit-status" style="font-size:12px;color:#6e6e73"></span>
+              </div>
+            </div>`;
+        }
         return `
           <div class="raw-item">
-            <div class="meta">${parts.join(" · ")}</div>
+            <div class="meta">${parts.join(" · ")}${actions}</div>
             <div class="body">${escHtml(n.body || "")}</div>
-          </div>
-        `;
+          </div>`;
       }).join("") + `</div>`;
     }
   }
@@ -661,6 +744,10 @@ window.saveMemo = saveMemo;
 window.toggleRawNotes = toggleRawNotes;
 window.toggleSiteRow = toggleSiteRow;
 window.changeSort = changeSort;
+window.deleteNote = deleteNote;
+window.startEditNote = startEditNote;
+window.cancelEditNote = cancelEditNote;
+window.saveEditNote = saveEditNote;
 
 // ===== 初期化 =====
 
