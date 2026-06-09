@@ -465,10 +465,11 @@ function renderRawNotesSection(m) {
           formatDate(n.created_at),
           n.site_id ? `現場 ${escHtml(n.site_id)}` : "",
         ].filter(Boolean);
+        const id = n.id;
         const actions = n.can_edit ? `
           <div class="note-actions">
-            <button class="note-btn" onclick="startEditNote(${JSON.stringify(n.id)})">編集</button>
-            <button class="note-btn note-btn-danger" onclick="deleteNote(${JSON.stringify(n.id)})">削除</button>
+            <button class="note-btn" onclick='startEditNote("${id}")'>編集</button>
+            <button class="note-btn note-btn-danger" onclick='deleteNote("${id}")'>削除</button>
           </div>` : "";
         if (STATE.editingNoteId === n.id) {
           return `
@@ -476,7 +477,7 @@ function renderRawNotesSection(m) {
               <div class="meta">${parts.join(" · ")}</div>
               <textarea id="edit-note-ta" class="note-edit-ta" rows="4">${escHtml(n.body || "")}</textarea>
               <div class="note-edit-actions">
-                <button class="note-btn note-btn-primary" onclick="saveEditNote(${JSON.stringify(n.id)})">保存</button>
+                <button class="note-btn note-btn-primary" onclick='saveEditNote("${id}")'>保存</button>
                 <button class="note-btn" onclick="cancelEditNote()">キャンセル</button>
                 <span id="note-edit-status" style="font-size:12px;color:#6e6e73"></span>
               </div>
