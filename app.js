@@ -175,6 +175,15 @@ async function toggleRawNotes() {
   render();
 }
 
+async function _refreshRawNotes() {
+  try {
+    const data = await api("mansion-raw-notes", { key: STATE.selected });
+    STATE.rawNotes = data.items || [];
+  } catch (_) {
+    STATE.rawNotes = [];
+  }
+}
+
 async function deleteNote(noteId) {
   if (!confirm("この原文を削除しますか？\n（削除後、Geminiが申し送りを自動再要約します）")) return;
   try {
@@ -187,11 +196,11 @@ async function deleteNote(noteId) {
     });
     if (!res.ok) throw new Error(`削除失敗: ${res.status} ${await res.text()}`);
     const data = await res.json();
-    STATE.rawNotes = (STATE.rawNotes || []).filter(n => n.id !== noteId);
     if (STATE.detail?.mansion) {
       if (data.summary !== undefined) STATE.detail.mansion["申し送り"] = data.summary;
       if (typeof data.raw_notes_count === "number") STATE.detail.mansion.raw_notes_count = data.raw_notes_count;
     }
+    await _refreshRawNotes();
     render();
   } catch (e) {
     alert(e.message);
@@ -226,15 +235,12 @@ async function saveEditNote(noteId) {
     });
     if (!res.ok) throw new Error(`保存失敗: ${res.status} ${await res.text()}`);
     const data = await res.json();
-    if (STATE.rawNotes) {
-      const idx = STATE.rawNotes.findIndex(n => n.id === noteId);
-      if (idx !== -1) STATE.rawNotes[idx] = { ...STATE.rawNotes[idx], body: newBody };
-    }
     if (STATE.detail?.mansion) {
       if (data.summary !== undefined) STATE.detail.mansion["申し送り"] = data.summary;
       if (typeof data.raw_notes_count === "number") STATE.detail.mansion.raw_notes_count = data.raw_notes_count;
     }
     STATE.editingNoteId = null;
+    await _refreshRawNotes();
     render();
   } catch (e) {
     if (statusEl) statusEl.textContent = e.message;
